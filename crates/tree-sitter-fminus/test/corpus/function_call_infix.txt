@@ -1,0 +1,32 @@
+===
+function call infix
+===
+1 f 2
+---
+(source_file
+    (expression
+        (infix_function_call
+            (expression
+                (number_literal))
+            (identifier)
+            (expression
+                (number_literal)))))
+
+===
+function call infix chained
+===
+1 f '' f []
+---
+(source_file
+    (expression
+        (infix_function_call
+            (expression
+                (infix_function_call
+                    (expression
+                        (number_literal))
+                    (identifier)
+                    (expression
+                        (string_literal))))
+            (identifier)
+            (expression
+                (list_literal)))))

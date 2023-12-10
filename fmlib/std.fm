@@ -1,0 +1,104 @@
+builtin(builtin);
+
+builtin(append);
+builtin(each);
+builtin(echo);
+builtin(error);
+builtin(print);
+builtin(source);
+builtin(tail);
+builtin(+);
+builtin(-);
+builtin(*);
+builtin(/);
+builtin(==);
+builtin(..);
+
+! := \v -> (
+    if (v == true) (
+        false
+    ) else (
+        true
+    )
+);
+
+&& := \l, r -> (
+    if (l == true) (
+        if (r == true) (
+            true
+        ) else (
+            false
+        )
+    ) else (
+        false
+    )
+);
+
+|| := \l, r -> (
+    if (l == true) (
+        true
+    ) else (
+        if (r == true) (
+            true
+        ) else (
+            false
+        )
+    )
+);
+
+!= := \l, r -> !(l == r);
+
+then := \v, f -> f(v);
+
+len := \l -> (
+    res := 0;
+    l each \-> (res = res + 1);
+    res
+);
+
+map := \l, f -> (
+    res := [];
+    l each \v -> (res = res append (v then f));
+    res
+);
+
+fold := \l, f -> (
+    acc := l(0);
+    s := tail(l);
+    s = s(1);
+    s each \v -> (acc = f(acc, v));
+    acc
+);
+
+enumerate := \l -> (
+    res := [];
+    i := 0;
+    l each \v -> (
+        res = res append [i, v];
+        i = i + 1;
+    );
+    res
+);
+
+..= := \l, r -> (
+    res := l .. r;
+    res = res append r;
+    res
+);
+
+** := \l, r -> (
+    res := [];
+    l each \l_inner -> (
+        r each \r_inner -> (
+            res = res append [l_inner, r_inner];
+        );
+    );
+    res
+);
+
+++ := \l, r -> (
+    res := [];
+    l each \v -> (res = res append v);
+    r each \v -> (res = res append v);
+    res
+);

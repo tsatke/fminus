@@ -1,0 +1,84 @@
+assert_eq := \l, r, msg -> (
+    if (l != r) (
+        error('failed:', msg, 'expected:', l, 'got:', r);
+    );
+);
+
+(\->(
+    print 'test append, len';
+    x := [1];
+    assert_eq(1, len(x), 'x should have one element');
+    x = x append 2;
+    assert_eq(2, len(x), 'x should have two elements');
+))();
+
+(\->(
+    print 'test echo';
+    assert_eq('hello , world', echo('hello', ',', 'world'), 'echo should return its arguments separated by a single space');
+))();
+
+(\->(
+    print 'test tail';
+    x := [1, 2, 3];
+    assert_eq([1, [2, 3]], tail(x), 'tail should split off the first element of the list and return both as a tuple');
+))();
+
+(\->(
+    print 'test +';
+    assert_eq(3, 1 + 2, '1 + 2 should be 3');
+))();
+
+(\->(
+    print 'test -';
+    assert_eq(1, 2 - 1, '2 - 1 should be 1');
+    assert_eq(-1, 0 - 1, '0 - 1 should be -1');
+))();
+
+(\->(
+    print 'test *';
+    assert_eq(6, 2 * 3, '2 * 3 should be 6');
+))();
+
+(\->(
+    print 'test /';
+    assert_eq(2, 6 / 3, '6 / 3 should be 2');
+))();
+
+(\->(
+    print 'test ==';
+    assert_eq(true, 1 == 1, '1 == 1 should be true');
+    assert_eq(false, 1 == 2, '1 == 2 should be false');
+))();
+
+(\->(
+    print 'test !=';
+    assert_eq(false, 1 != 1, '1 != 1 should be false');
+    assert_eq(true, 1 != 2, '1 != 2 should be true');
+))();
+
+(\->(
+    print 'test &&';
+    assert_eq(true, true && true, 'true && true should be true');
+    assert_eq(false, true && false, 'true && false should be false');
+    assert_eq(false, false && true, 'false && true should be false');
+    assert_eq(false, false && false, 'false && false should be false');
+))();
+
+(\->(
+    print 'test ||';
+    assert_eq(true, true || true, 'true || true should be true');
+    assert_eq(true, true || false, 'true || false should be true');
+    assert_eq(true, false || true, 'false || true should be true');
+    assert_eq(false, false || false, 'false || false should be false');
+))();
+
+(\->(
+    print 'test range';
+    assert_eq([2, 3, 4, 5, 6], 2..7, '2..7 should be [2, 3, 4, 5, 6]');
+))();
+
+(\->(
+    print 'test range inclusive';
+    assert_eq([2, 3, 4, 5, 6, 7], 2..=7, '2..=7 should be [2, 3, 4, 5, 6, 7]');
+))();
+

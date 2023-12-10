@@ -1,0 +1,202 @@
+===
+simple statement
+===
+1;
+---
+(source_file
+    (statement
+        (expression
+            (number_literal))))
+
+===
+multiple statements
+===
+1;
+2;
+---
+(source_file
+    (statement
+        (expression
+            (number_literal)))
+    (statement
+        (expression
+            (number_literal))))
+
+===
+multiple statements and return expression
+===
+1;
+2;
+3
+---
+(source_file
+    (statement
+        (expression
+            (number_literal)))
+    (statement
+        (expression
+            (number_literal)))
+    (expression
+        (number_literal)))
+
+===
+declaration
+===
+x := 1;
+---
+(source_file
+    (statement
+        (declaration
+            (identifier)
+            (expression
+                (number_literal)))))
+
+===
+declaration and assignment
+===
+x := 1;
+x = 2;
+---
+(source_file
+    (statement
+        (declaration
+            (identifier)
+            (expression
+                (number_literal))))
+    (statement
+        (expression
+            (assignment
+                (expression
+                    (identifier))
+                (expression
+                    (number_literal))))))
+
+===
+simple if
+===
+if (true) (
+    print '1';
+)
+---
+(source_file
+    (expression
+        (if_statement
+            (expression
+                (boolean_literal))
+            (block
+                (statement
+                    (expression
+                        (prefix_unary_function_call
+                            (identifier)
+                            (expression
+                                (string_literal)))))))))
+
+===
+if else
+===
+if (true) (
+    print '1';
+) else (
+    print '2';
+)
+---
+(source_file
+    (expression
+        (if_statement
+            (expression
+                (boolean_literal))
+            (block
+                (statement
+                    (expression
+                        (prefix_unary_function_call
+                            (identifier)
+                            (expression
+                                (string_literal))))))
+            (block
+                (statement
+                    (expression
+                        (prefix_unary_function_call
+                            (identifier)
+                            (expression
+                                (string_literal)))))))))
+
+===
+if else if as expression
+===
+if (true) (
+    print '1';
+) else if (false) (
+    print '2';
+) else (
+    print '3';
+)
+---
+(source_file
+    (expression
+        (if_statement
+            (expression
+                (boolean_literal))
+            (block
+                (statement
+                    (expression
+                        (prefix_unary_function_call
+                            (identifier)
+                            (expression
+                                (string_literal))))))
+            (expression
+                (boolean_literal))
+            (block
+                (statement
+                    (expression
+                        (prefix_unary_function_call
+                            (identifier)
+                            (expression
+                                (string_literal))))))
+            (block
+                (statement
+                    (expression
+                        (prefix_unary_function_call
+                            (identifier)
+                            (expression
+                                (string_literal)))))))))
+
+===
+if else if as statement
+===
+if (true) (
+    print '1';
+) else if (false) (
+    print '2';
+) else (
+    print '3';
+);
+---
+(source_file
+    (statement
+        (expression
+            (if_statement
+                (expression
+                    (boolean_literal))
+                (block
+                    (statement
+                        (expression
+                            (prefix_unary_function_call
+                                (identifier)
+                                (expression
+                                    (string_literal))))))
+                (expression
+                    (boolean_literal))
+                (block
+                    (statement
+                        (expression
+                            (prefix_unary_function_call
+                                (identifier)
+                                (expression
+                                    (string_literal))))))
+                (block
+                    (statement
+                        (expression
+                            (prefix_unary_function_call
+                                (identifier)
+                                (expression
+                                    (string_literal))))))))))

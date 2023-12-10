@@ -1,0 +1,81 @@
+===
+function call no args
+===
+f()
+---
+(source_file
+    (expression
+        (function_call
+            (identifier))))
+
+===
+function call with args
+===
+f(1, 2, 3)
+---
+(source_file
+    (expression
+        (function_call
+            (identifier)
+            (expression
+                (number_literal))
+            (expression
+                (number_literal))
+            (expression
+                (number_literal)))))
+
+===
+function call with args and trailing comma
+===
+f(1, 2, 3,)
+---
+(source_file
+    (expression
+        (function_call
+            (identifier)
+            (expression
+                (number_literal))
+            (expression
+                (number_literal))
+            (expression
+                (number_literal)))))
+
+===
+nested function call
+===
+f(g(1, 2, 3))
+---
+(source_file
+    (expression
+        (function_call
+            (identifier)
+            (expression
+                (function_call
+                    (identifier)
+                    (expression
+                        (number_literal))
+                    (expression
+                        (number_literal))
+                    (expression
+                        (number_literal)))))))
+
+===
+expression as a function call
+===
+(f(1))(1,2,3)
+---
+(source_file
+    (expression
+        (function_call
+            (block
+                (expression
+                    (function_call
+                        (identifier)
+                        (expression
+                            (number_literal)))))
+                (expression
+                    (number_literal))
+                (expression
+                    (number_literal))
+                (expression
+                    (number_literal)))))

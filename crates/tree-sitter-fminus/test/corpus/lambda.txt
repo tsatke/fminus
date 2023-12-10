@@ -1,0 +1,149 @@
+===
+lambda no args
+===
+\-> 0
+---
+(source_file
+    (expression
+        (lambda
+            (expression
+                (number_literal)))))
+
+===
+lambda no args statement
+===
+\-> 0;
+---
+(source_file
+    (statement
+        (expression
+            (lambda
+                (expression
+                    (number_literal))))))
+
+===
+lambda single arg
+===
+\x -> x
+---
+(source_file
+    (expression
+        (lambda
+            (identifier)
+            (expression
+                (identifier)))))
+
+===
+lambda single arg statement
+===
+\x -> x;
+---
+(source_file
+    (statement
+        (expression
+            (lambda
+                (identifier)
+                (expression
+                    (identifier))))))
+
+===
+lambda multiple args
+===
+\x, y -> y(x)
+---
+(source_file
+    (expression
+        (lambda
+            (identifier)
+            (identifier)
+            (expression
+                (function_call
+                    (identifier)
+                    (expression
+                        (identifier)))))))
+
+===
+lambda with block
+===
+\v -> (v foo bar);
+---
+(source_file
+    (statement
+        (expression
+            (lambda
+                (identifier)
+                (expression
+                    (block
+                        (expression
+                            (infix_function_call
+                                (expression
+                                    (identifier))
+                                (identifier)
+                                (expression
+                                    (identifier))))))))))
+
+===
+lambda with block and assignment as statement
+===
+\v -> (x = x append v;);
+---
+(source_file
+    (statement
+        (expression
+            (lambda
+                (identifier)
+                (expression
+                    (block
+                        (statement
+                            (expression
+                                (assignment
+                                    (expression
+                                        (identifier))
+                                    (expression
+                                        (infix_function_call
+                                            (expression
+                                                (identifier))
+                                            (identifier)
+                                            (expression
+                                                (identifier)))))))))))))
+
+===
+lambda with block and assignment as expression
+===
+\v -> (x = x append v);
+---
+(source_file
+    (statement
+        (expression
+            (lambda
+                (identifier)
+                (expression
+                    (block
+                        (expression
+                            (assignment
+                                (expression
+                                    (identifier))
+                                (expression
+                                    (infix_function_call
+                                        (expression
+                                            (identifier))
+                                        (identifier)
+                                        (expression
+                                            (identifier))))))))))))
+
+===
+anonymous lambda call
+===
+(\x -> x)(1)
+---
+(source_file
+    (expression
+        (function_call
+            (block
+                (expression
+                    (lambda
+                        (identifier)
+                        (expression
+                            (identifier)))))
+                (expression
+                    (number_literal)))))

@@ -1,0 +1,147 @@
+===
+number_literal single digit
+===
+1
+---
+(source_file
+    (expression
+        (number_literal)))
+
+===
+number_literal multiple digits
+===
+123
+---
+(source_file
+    (expression
+        (number_literal)))
+
+===
+string literal empty
+===
+''
+---
+(source_file
+    (expression
+        (string_literal)))
+
+===
+string literal single character
+===
+'a'
+---
+(source_file
+    (expression
+        (string_literal)))
+
+===
+string literal multiple characters
+===
+'abc'
+---
+(source_file
+    (expression
+        (string_literal)))
+
+===
+string literal with escaped single quote
+===
+'a\'b'
+---
+(source_file
+    (expression
+        (string_literal)))
+
+===
+list literal empty
+===
+[]
+---
+(source_file
+    (expression
+        (list_literal)))
+
+===
+list literal single element
+===
+[1]
+---
+(source_file
+    (expression
+        (list_literal
+            (expression
+                (number_literal)))))
+
+===
+list literal multiple elements
+===
+[1, 2]
+---
+(source_file
+    (expression
+        (list_literal
+            (expression
+                (number_literal))
+            (expression
+                (number_literal)))))
+
+===
+list literal nested
+===
+[1, [2, 3]]
+---
+(source_file
+    (expression
+        (list_literal
+            (expression
+                (number_literal))
+            (expression
+                (list_literal
+                    (expression
+                        (number_literal))
+                    (expression
+                        (number_literal)))))))
+
+===
+list literal with trailing comma
+===
+[1, 2,]
+---
+(source_file
+    (expression
+        (list_literal
+            (expression
+                (number_literal))
+            (expression
+                (number_literal)))))
+
+===
+list literal with different types
+===
+[1, 'a']
+---
+(source_file
+    (expression
+        (list_literal
+            (expression
+                (number_literal))
+            (expression
+                (string_literal)))))
+
+===
+boolean literal true
+===
+true
+---
+(source_file
+    (expression
+        (boolean_literal)))
+
+===
+boolean literal false
+===
+false
+---
+(source_file
+    (expression
+        (boolean_literal)))
