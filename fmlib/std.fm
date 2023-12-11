@@ -16,7 +16,9 @@ builtin($);
 builtin(==);
 builtin(..);
 
-! := \v -> (
+copy := \v -> v;
+
+! := \ref v -> (
     if (v == true) (
         false
     ) else (
@@ -24,7 +26,7 @@ builtin(..);
     )
 );
 
-&& := \l, r -> (
+&& := \ref l, r -> (
     if (l == true) (
         if (r == true) (
             true
@@ -36,7 +38,7 @@ builtin(..);
     )
 );
 
-|| := \l, r -> (
+|| := \ref l, r -> (
     if (l == true) (
         true
     ) else (
@@ -48,30 +50,30 @@ builtin(..);
     )
 );
 
-!= := \l, r -> !(l == r);
+!= := \ref l, r -> !(l == r);
 
-then := \v, f -> f(v);
+then := \ref v, f -> f(v);
 
-len := \l -> (
+len := \ref l -> (
     res := 0;
     l each \-> (res = res + 1);
     res
 );
 
-map := \l, f -> (
+map := \ref l, f -> (
     res := [];
     l each \v -> (res = res append (v then f));
     res
 );
 
-fold := \l, f -> (
+fold := \ref l, f -> (
     acc := l(0);
     s := l then tail then last;
     s each \v -> (acc = f(acc, v));
     acc
 );
 
-enumerate := \l -> (
+enumerate := \ref l -> (
     res := [];
     i := 0;
     l each \v -> (
@@ -81,13 +83,13 @@ enumerate := \l -> (
     res
 );
 
-..= := \l, r -> (
+..= := \ref l, r -> (
     res := l .. r;
     res = res append r;
     res
 );
 
-** := \l, r -> (
+** := \ref l, r -> (
     res := [];
     l each \l_inner -> (
         r each \r_inner -> (
@@ -102,15 +104,15 @@ enumerate := \l -> (
     l
 );
 
-first := \l -> l(0);
+first := \ref l -> l(0);
 
-second := \l -> l(1);
+second := \ref l -> l(1);
 
-third := \l -> l(2);
+third := \ref l -> l(2);
 
-last := \l -> l(len(l) - 1);
+last := \ref l -> l(len(l) - 1);
 
-filter := \l, f -> (
+filter := \ref l, f -> (
     res := [];
     l each \v -> (
         if (v then f) (
@@ -120,21 +122,21 @@ filter := \l, f -> (
     res
 );
 
-reverse := \l -> (
+reverse := \ref l -> (
     res := [];
     l each \v -> (res = res push_front v);
     res
 );
 
-push_front := \l, v -> (
+push_front := \ref l, v -> (
     [v] ++ l
 );
 
 push_back := append;
 
-remove_first := \l -> l then tail then last;
+remove_first := \ref l -> l then tail then last;
 
-remove_last := \l -> (
+remove_last := \ref l -> (
     res := [];
     l
         then enumerate
@@ -148,7 +150,7 @@ remove_last := \l -> (
     res
 );
 
-atoi := \s -> (
+atoi := \ref s -> (
     if (s == '') (
         error('empty string');
     ) else if (s == '-') (
@@ -204,7 +206,7 @@ join := \l, d -> (
     )
 );
 
-split_list_fn := \l, f -> (
+split_list_fn := \ref l, f -> (
     res := [];
     cur := [];
     l each \c -> (
@@ -219,14 +221,14 @@ split_list_fn := \l, f -> (
     res
 );
 
-split_list := \s, sep -> s split_fn (\v -> v == sep);
+split_list := \ref s, sep -> s split_fn (\v -> v == sep);
 
-split_fn := \s, f -> s
+split_fn := \ref s, f -> s
     then chars
     split_list_fn f
     map \l -> l join '';
 
-split := \s, sep -> s split_fn (\v -> v == sep);
+split := \ref s, sep -> s split_fn (\v -> v == sep);
 
-lines := \s -> s split '
+lines := \ref s -> s split '
 ';
