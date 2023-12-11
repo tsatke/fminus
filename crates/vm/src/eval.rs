@@ -159,7 +159,7 @@ impl Vm {
             .otherwise
             .map(|otherwise| self.eval_block(otherwise, SeparateScope::Yes))
             .unwrap_or(Some(Rc::new(Mutex::new(Value::Nil))))
-            .unwrap()
+            .unwrap_or(Rc::new(Mutex::new(Value::Nil)))
     }
 
     pub fn eval_assignment(&mut self, assignment: Assignment) -> Rc<Mutex<Value>> {
