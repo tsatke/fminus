@@ -66,6 +66,12 @@ map := \ref l, f -> (
     res
 );
 
+flat_map := \ref l, f -> (
+    res := [];
+    l map f each \ref v -> (res = res ++ v);
+    res
+);
+
 fold := \ref l, f -> (
     acc := l(0);
     s := l then tail then last;
