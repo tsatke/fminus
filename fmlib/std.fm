@@ -1,6 +1,7 @@
 builtin(builtin);
 
 builtin(append);
+builtin(chars);
 builtin(each);
 builtin(echo);
 builtin(error);
@@ -11,6 +12,7 @@ builtin(+);
 builtin(-);
 builtin(*);
 builtin(/);
+builtin($);
 builtin(==);
 builtin(..);
 
@@ -64,8 +66,7 @@ map := \l, f -> (
 
 fold := \l, f -> (
     acc := l(0);
-    s := tail(l);
-    s = s(1);
+    s := l then tail then last;
     s each \v -> (acc = f(acc, v));
     acc
 );
@@ -97,8 +98,128 @@ enumerate := \l -> (
 );
 
 ++ := \l, r -> (
+    r each \v -> (l = l append v);
+    l
+);
+
+first := \l -> l(0);
+
+second := \l -> l(1);
+
+third := \l -> l(2);
+
+last := \l -> l(len(l) - 1);
+
+filter := \l, f -> (
     res := [];
-    l each \v -> (res = res append v);
-    r each \v -> (res = res append v);
+    l each \v -> (
+        if (v then f) (
+            res = res append v;
+        );
+    );
     res
 );
+
+reverse := \l -> (
+    res := [];
+    l each \v -> (res = res push_front v);
+    res
+);
+
+push_front := \l, v -> (
+    [v] ++ l
+);
+
+push_back := append;
+
+remove_first := \l -> l then tail then last;
+
+remove_last := \l -> (
+    res := [];
+    l
+        then enumerate
+        each \v -> (
+            i := first(v);
+            e := last(v);
+            if (i != (len(l) - 1)) (
+                res = res append e;
+            );
+        );
+    res
+);
+
+atoi := \s -> (
+    if (s == '') (
+        error('empty string');
+    ) else if (s == '-') (
+        error('missing numbers, got only \'-\'');
+    );
+
+    res := 0;
+    mul := 1;
+    c := s then chars;
+    if (c then first == '-') (
+        mul = -1;
+        c = c then remove_first;
+    );
+    c each \c -> (
+        num := if (c == '0') (
+            0
+        ) else if (c == '1') (
+            1
+        ) else if (c == '2') (
+            2
+        ) else if (c == '3') (
+            3
+        ) else if (c == '4') (
+            4
+        ) else if (c == '5') (
+            5
+        ) else if (c == '6') (
+            6
+        ) else if (c == '7') (
+            7
+        ) else if (c == '8') (
+            8
+        ) else if (c == '9') (
+            9
+        ) else (
+            error('invalid character in integer literal', c);
+        );
+        res = res * 10 + num;
+    );
+    res * mul
+);
+
+join := \l, d -> (
+    res := l then first;
+    l = l then remove_first;
+    l each \v -> (
+        res = res $ d $ v;
+    );
+    res
+);
+
+split_list_fn := \l, f -> (
+    res := [];
+    cur := [];
+    l each \c -> (
+        if (c then f) (
+            res = res append cur;
+            cur = [];
+        ) else (
+            cur = cur append c;
+        );
+    );
+    res = res append cur;
+    res
+);
+
+split_list := \s, sep -> s split_fn (\v -> v == sep);
+
+split_fn := \s, f -> s
+    then chars
+    split_list_fn f
+    map \l -> l join '';
+
+split := \s, sep -> s split_fn (\v -> v == sep);
