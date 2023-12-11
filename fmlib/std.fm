@@ -89,6 +89,8 @@ enumerate := \ref l -> (
     res
 );
 
+peek := \ref l, f -> (l map (\ref v -> (v then f)));
+
 ..= := \ref l, r -> (
     res := l .. r;
     res = res append r;
