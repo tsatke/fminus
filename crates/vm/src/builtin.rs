@@ -12,6 +12,7 @@ impl Vm {
     pub fn register_builtins(&mut self) {
         self.register_builtin("append", Self::builtin_append);
         self.register_builtin("builtin", Self::builtin_builtin);
+        self.register_builtin("chars", Self::builtin_chars);
         self.register_builtin("each", Self::builtin_each);
         self.register_builtin("echo", Self::builtin_echo);
         self.register_builtin("error", Self::builtin_error);
@@ -56,6 +57,17 @@ impl Vm {
             panic!("expected builtin");
         }
         None
+    }
+
+    pub fn builtin_chars(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+        must_n_args(1, &args);
+
+        let res = args[0].lock().unwrap()
+            .string().expect("arg must be a string")
+            .chars()
+            .map(|c| Rc::new(Mutex::new(Value::String(c.to_string()))))
+            .collect::<Vec<_>>();
+        Some(Rc::new(Mutex::new(Value::List(res))))
     }
 
     pub fn builtin_each(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
