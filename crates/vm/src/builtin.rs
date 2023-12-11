@@ -17,6 +17,7 @@ impl Vm {
         self.register_builtin("echo", Self::builtin_echo);
         self.register_builtin("error", Self::builtin_error);
         self.register_builtin("print", Self::builtin_print);
+        self.register_builtin("read_file", Self::builtin_read_file);
         self.register_builtin("search", Self::builtin_search);
         self.register_builtin("source", Self::builtin_source);
         self.register_builtin("tail", Self::builtin_tail);
@@ -64,8 +65,11 @@ impl Vm {
     pub fn builtin_chars(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
         must_n_args(1, &args);
 
-        let res = args[0].lock().unwrap()
-            .string().expect("arg must be a string")
+        let res = args[0]
+            .lock()
+            .unwrap()
+            .string()
+            .expect("arg must be a string")
             .chars()
             .map(|c| Rc::new(Mutex::new(Value::String(c.to_string()))))
             .collect::<Vec<_>>();
@@ -159,6 +163,14 @@ impl Vm {
         None
     }
 
+    pub fn builtin_read_file(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+        must_n_args(1, &args);
+        let guard = args[0].lock().unwrap();
+        let path = guard.string().expect("arg must be string");
+        let content = read_to_string(path).unwrap();
+        Some(Rc::new(Mutex::new(Value::String(content))))
+    }
+
     pub fn builtin_range(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
         must_n_args(2, &args);
         let left = args[0].lock().unwrap();
@@ -185,15 +197,16 @@ impl Vm {
         let haystack = haystack.string().expect("left arg must be string");
         let needle = needle.string().expect("right arg must be string");
 
-        let list: Vec<_> = regex::Regex::new(needle).unwrap()
+        let list: Vec<_> = regex::Regex::new(needle)
+            .unwrap()
             .captures_iter(haystack)
-            .flat_map(|captures| captures.iter()
-                .skip(1)
-                .filter_map(|capture| capture
-                    .map(|c| c.as_str().to_string())
-                )
-                .collect::<Vec<_>>()
-            )
+            .flat_map(|captures| {
+                captures
+                    .iter()
+                    .skip(1)
+                    .filter_map(|capture| capture.map(|c| c.as_str().to_string()))
+                    .collect::<Vec<_>>()
+            })
             .map(|capture| Rc::new(Mutex::new(Value::String(capture))))
             .collect();
 

@@ -1,19 +1,4 @@
-x := '0hel1lo, 2wor3ld!5' search '(\d)';
-x then print;
-
-'-12324' then atoi then (\v -> v + 1) then print;
-
-ints_signed := \s -> (
-    s search '(-?\d+)' map atoi
-);
-
-ints_unsigned := \s -> (
-    s search '(\d+)' map atoi
-);
-
-'hello123world-456foo19bar' then ints_signed then print;
-'hello123world-456foo19bar' then ints_unsigned then reverse then print;
-
-[1, 2, 3, 2, 4] filter (\v -> v == 2) then print;
-
-'hello world' split ' ' then print;
+read_file('example.fm')
+    then lines
+    map (\l -> '"' $ l $ '"')
+    each print;
