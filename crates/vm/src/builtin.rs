@@ -24,6 +24,7 @@ impl Vm {
         self.register_builtin("-", create_builtin_binary_arith_op(|a, b| a - b));
         self.register_builtin("*", create_builtin_binary_arith_op(|a, b| a * b));
         self.register_builtin("/", create_builtin_binary_arith_op(|a, b| a / b));
+        self.register_builtin("$", Self::builtin_concat);
         self.register_builtin("==", Self::builtin_equals);
         self.register_builtin("..", Self::builtin_range);
     }
@@ -109,6 +110,20 @@ impl Vm {
                 .collect::<Vec<_>>()
                 .join(" ")
         );
+        Some(Rc::new(Mutex::new(Value::String(res))))
+    }
+
+    pub fn builtin_concat(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+        must_n_args(2, &args);
+
+        let left = args[0].lock().unwrap();
+        let right = args[1].lock().unwrap();
+
+        let left = left.string().expect("left arg must be string");
+        let right = right.string().expect("right arg must be string");
+
+        let res = format!("{}{}", left, right);
+
         Some(Rc::new(Mutex::new(Value::String(res))))
     }
 
