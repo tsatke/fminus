@@ -1,9 +1,7 @@
 use std::path::PathBuf;
+
 use clap::Parser;
 use clap_derive::Parser;
-use vm::Vm;
-
-const STDLIB: &str = include_str!("../fmlib/std.fm");
 
 #[derive(Parser)]
 pub struct Args {
@@ -14,9 +12,8 @@ pub struct Args {
 fn main() {
     let args = Args::parse();
 
-    let mut vm = Vm::default();
-    vm.eval(STDLIB);
-    let res = vm.eval_file(&args.file);
+    let file = &args.file;
+    let res = fminus::eval_file(file);
     if let Some(res) = res {
         println!("> {}", res);
     }
