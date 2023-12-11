@@ -17,6 +17,7 @@ impl Vm {
         self.register_builtin("echo", Self::builtin_echo);
         self.register_builtin("error", Self::builtin_error);
         self.register_builtin("print", Self::builtin_print);
+        self.register_builtin("search", Self::builtin_search);
         self.register_builtin("source", Self::builtin_source);
         self.register_builtin("tail", Self::builtin_tail);
         self.register_builtin("+", create_builtin_binary_arith_op(|a, b| a + b));
@@ -155,6 +156,33 @@ impl Vm {
             )))),
             _ => panic!("expected numbers"),
         }
+    }
+
+    fn builtin_search(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+        must_n_args(2, &args);
+
+        // search takes two strings, the first is the string to search in, the second is the regexp
+        // to search for
+
+        let haystack = args[0].lock().unwrap();
+        let needle = args[1].lock().unwrap();
+
+        let haystack = haystack.string().expect("left arg must be string");
+        let needle = needle.string().expect("right arg must be string");
+
+        let list: Vec<_> = regex::Regex::new(needle).unwrap()
+            .captures_iter(haystack)
+            .flat_map(|captures| captures.iter()
+                .skip(1)
+                .filter_map(|capture| capture
+                    .map(|c| c.as_str().to_string())
+                )
+                .collect::<Vec<_>>()
+            )
+            .map(|capture| Rc::new(Mutex::new(Value::String(capture))))
+            .collect();
+
+        Some(Rc::new(Mutex::new(Value::List(list))))
     }
 
     fn builtin_source(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
