@@ -90,6 +90,7 @@ impl Vm {
             acc
         });
         Rc::new(Mutex::new(Value::Lambda(value::Lambda {
+            by_reference: lambda.by_reference,
             captured_environment,
             args: lambda.parameters,
             body: lambda.body,
@@ -113,7 +114,7 @@ impl Vm {
                 .arguments
                 .into_iter()
                 .map(|v| self.eval_expression(v))
-                .map(copy_inner)
+                .map(|v| if lambda.by_reference { v } else { copy_inner(v) })
                 .collect();
             // captured environment
             self.with_scope(lambda.captured_environment, |vm| {

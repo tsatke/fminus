@@ -20,6 +20,7 @@ pub enum Value {
 
 #[derive(Clone)]
 pub struct Lambda {
+    pub by_reference: bool,
     pub captured_environment: Scope,
     pub args: Vec<Identifier>,
     pub body: Expression,

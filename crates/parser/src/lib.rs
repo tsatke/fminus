@@ -165,8 +165,9 @@ fn parse_block(source: &[u8], node: &Node) -> Block {
 }
 
 fn parse_lambda(source: &[u8], node: &Node) -> Lambda {
-    let ref_indicator = node.child(0).unwrap();
-    let by_reference = ref_indicator.utf8_text(source).unwrap() == "\\ref";
+    // first child is '\', second may be 'ref'
+    let ref_indicator = node.child(1).unwrap();
+    let by_reference = ref_indicator.utf8_text(source).unwrap() == "ref";
 
     let cursor = &mut node.walk();
     let children = node.named_children(cursor);

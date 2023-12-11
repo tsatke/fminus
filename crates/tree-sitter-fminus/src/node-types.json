@@ -305,10 +305,6 @@
     "named": false
   },
   {
-    "type": "\\ref",
-    "named": false
-  },
-  {
     "type": "]",
     "named": false
   },
@@ -331,6 +327,10 @@
   {
     "type": "number_literal",
     "named": true
+  },
+  {
+    "type": "ref",
+    "named": false
   },
   {
     "type": "string_literal",

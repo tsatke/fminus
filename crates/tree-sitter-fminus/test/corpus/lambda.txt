@@ -147,3 +147,18 @@ anonymous lambda call
                             (identifier)))))
                 (expression
                     (number_literal)))))
+
+===
+ref lambda
+===
+x := \ref v -> v;
+---
+(source_file
+    (statement
+        (declaration
+            (identifier)
+            (expression
+                (lambda
+                    (identifier)
+                    (expression
+                        (identifier)))))))
