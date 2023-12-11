@@ -80,7 +80,10 @@ module.exports = grammar({
         )),
 
         lambda: $ => prec.right('lambda', seq(
-            '\\',
+            choice(
+                '\\',
+                '\\ref',
+            ),
             optional(
                 seq(
                     $.identifier,

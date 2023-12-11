@@ -50,6 +50,7 @@ pub struct FunctionCall {
 
 #[derive(Constructor, Debug, Clone, Eq, PartialEq, Hash)]
 pub struct Lambda {
+    pub by_reference: bool,
     pub parameters: Vec<Identifier>,
     pub body: Expression,
 }

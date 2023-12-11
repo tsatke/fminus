@@ -305,6 +305,10 @@
     "named": false
   },
   {
+    "type": "\\ref",
+    "named": false
+  },
+  {
     "type": "]",
     "named": false
   },
