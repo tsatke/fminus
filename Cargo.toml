@@ -8,10 +8,10 @@ edition = "2021"
 [dependencies]
 clap = "4.4.11"
 clap_derive = "4.4.7"
-vm = { path = "crates/vm" }
+interpreter = { path = "crates/interpreter" }
 
 [workspace]
 members = [
     "crates/parser",
-    "crates/vm",
+    "crates/interpreter",
 ]

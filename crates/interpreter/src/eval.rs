@@ -9,7 +9,7 @@ use parser::{
 use crate::builtin::copy_inner;
 use crate::scope::Scope;
 use crate::value::Value;
-use crate::{value, Vm};
+use crate::{value, Interpreter};
 
 #[derive(Eq, PartialEq, Copy, Clone)]
 pub enum SeparateScope {
@@ -17,7 +17,7 @@ pub enum SeparateScope {
     No,
 }
 
-impl Vm {
+impl Interpreter {
     pub fn eval_source_file(&mut self, source_file: SourceFile) -> Option<Value> {
         self.eval_block(source_file.block, SeparateScope::No)
             .map(|value| value.lock().unwrap().clone())
@@ -36,12 +36,12 @@ impl Vm {
         separate_scope: SeparateScope,
     ) -> Option<Rc<Mutex<Value>>> {
         if separate_scope == SeparateScope::Yes {
-            self.with_scope(Scope::default(), |vm| {
+            self.with_scope(Scope::default(), |interpreter| {
                 for statement in block.statements {
-                    vm.eval_statement(statement);
+                    interpreter.eval_statement(statement);
                 }
 
-                block.value.map(|expression| vm.eval_expression(expression))
+                block.value.map(|expression| interpreter.eval_expression(expression))
             })
         } else {
             for statement in block.statements {
@@ -106,8 +106,8 @@ impl Vm {
                 .into_iter()
                 .map(|v| self.eval_expression(v))
                 .collect();
-            self.with_scope(Scope::default(), |vm| {
-                builtin(vm, args).unwrap_or(Rc::new(Mutex::new(Value::Nil)))
+            self.with_scope(Scope::default(), |interpreter| {
+                builtin(interpreter, args).unwrap_or(Rc::new(Mutex::new(Value::Nil)))
             })
         } else if let Some(lambda) = function.lambda().cloned() {
             let args: Vec<_> = function_call
@@ -117,13 +117,13 @@ impl Vm {
                 .map(|v| if lambda.by_reference { v } else { copy_inner(v) })
                 .collect();
             // captured environment
-            self.with_scope(lambda.captured_environment, |vm| {
+            self.with_scope(lambda.captured_environment, |interpreter| {
                 // arguments
-                vm.with_scope(Scope::default(), |vm| {
+                interpreter.with_scope(Scope::default(), |interpreter| {
                     for (name, value) in lambda.args.into_iter().zip(args) {
-                        vm.current_scope().declare_variable(name, value);
+                        interpreter.current_scope().declare_variable(name, value);
                     }
-                    vm.eval_expression(lambda.body)
+                    interpreter.eval_expression(lambda.body)
                 })
             })
         } else if let Some(list) = function.list() {

@@ -9,11 +9,11 @@ mod eval;
 mod scope;
 mod value;
 
-pub struct Vm {
+pub struct Interpreter {
     scopes: Vec<Scope>,
 }
 
-impl Default for Vm {
+impl Default for Interpreter {
     fn default() -> Self {
         let mut res = Self {
             scopes: vec![Scope::default()],
@@ -23,7 +23,7 @@ impl Default for Vm {
     }
 }
 
-impl Vm {
+impl Interpreter {
     pub fn eval_file(&mut self, p: impl AsRef<Path>) -> Option<Value> {
         let content = read_to_string(p).unwrap();
         self.eval(content)

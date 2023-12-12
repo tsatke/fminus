@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use parser::{Expression, Identifier};
 
 use crate::scope::Scope;
-use crate::Vm;
+use crate::Interpreter;
 
 #[derive(Clone)]
 pub enum Value {
@@ -14,7 +14,7 @@ pub enum Value {
     String(String),
     List(Vec<Rc<Mutex<Value>>>),
     Boolean(bool),
-    Builtin(Rc<dyn Fn(&mut Vm, Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>>>),
+    Builtin(Rc<dyn Fn(&mut Interpreter, Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>>>),
     Lambda(Lambda),
 }
 
@@ -93,7 +93,7 @@ impl Value {
 
     pub fn builtin(
         &self,
-    ) -> Option<&Rc<dyn Fn(&mut Vm, Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>>>> {
+    ) -> Option<&Rc<dyn Fn(&mut Interpreter, Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>>>> {
         match self {
             Value::Builtin(v) => Some(v),
             _ => None,

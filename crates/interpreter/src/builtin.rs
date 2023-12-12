@@ -6,9 +6,9 @@ use parser::Identifier;
 
 use crate::eval::SeparateScope;
 use crate::scope::Scope;
-use crate::{Value, Vm};
+use crate::{Value, Interpreter};
 
-impl Vm {
+impl Interpreter {
     pub fn register_builtins(&mut self) {
         self.register_builtin("append", Self::builtin_append);
         self.register_builtin("builtin", Self::builtin_builtin);
@@ -33,12 +33,12 @@ impl Vm {
     pub fn register_builtin(
         &mut self,
         name: impl Into<String>,
-        func: impl Fn(&mut Vm, Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> + 'static,
+        func: impl Fn(&mut Interpreter, Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> + 'static,
     ) {
         self.current_scope().declare_variable(
             Identifier(name.into()),
-            Rc::new(Mutex::new(Value::Builtin(Rc::new(move |vm, args| {
-                func(vm, args)
+            Rc::new(Mutex::new(Value::Builtin(Rc::new(move |interpreter, args| {
+                func(interpreter, args)
             })))),
         );
     }
@@ -85,18 +85,18 @@ impl Vm {
         for arg in list {
             let args = vec![arg.clone()];
             if let Some(builtin) = function.builtin() {
-                self.with_scope(Scope::default(), |vm| {
-                    builtin(vm, args);
+                self.with_scope(Scope::default(), |interpreter| {
+                    builtin(interpreter, args);
                 });
             } else if let Some(lambda) = function.lambda().cloned() {
                 // captured environment
-                self.with_scope(lambda.captured_environment, |vm| {
+                self.with_scope(lambda.captured_environment, |interpreter| {
                     // arguments
-                    vm.with_scope(Scope::default(), |vm| {
+                    interpreter.with_scope(Scope::default(), |interpreter| {
                         for (name, value) in lambda.args.into_iter().zip(args) {
-                            vm.current_scope().declare_variable(name, value);
+                            interpreter.current_scope().declare_variable(name, value);
                         }
-                        vm.eval_expression(lambda.body);
+                        interpreter.eval_expression(lambda.body);
                     });
                 });
             } else {
@@ -254,8 +254,8 @@ pub fn copy_inner(v: Rc<Mutex<Value>>) -> Rc<Mutex<Value>> {
 
 fn create_builtin_binary_arith_op(
     op: impl Fn(i64, i64) -> i64 + 'static,
-) -> impl Fn(&mut Vm, Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> + 'static {
-    move |_: &mut Vm, args: Vec<Rc<Mutex<Value>>>| -> Option<Rc<Mutex<Value>>> {
+) -> impl Fn(&mut Interpreter, Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> + 'static {
+    move |_: &mut Interpreter, args: Vec<Rc<Mutex<Value>>>| -> Option<Rc<Mutex<Value>>> {
         must_n_args(2, &args);
         let left = args[0].lock().unwrap();
         let right = args[1].lock().unwrap();
