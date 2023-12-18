@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::Mutex;
 
@@ -8,13 +9,72 @@ use crate::scope::Scope;
 use crate::Interpreter;
 
 #[derive(Clone)]
+pub struct RcValue(Rc<Mutex<Value>>);
+
+impl Deref for RcValue {
+    type Target = Mutex<Value>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl RcValue {
+    pub fn new(value: Value) -> Self {
+        Self(Rc::new(Mutex::new(value)))
+    }
+
+    pub fn nil() -> Self {
+        Self::new(Value::Nil)
+    }
+
+    pub fn number(value: i64) -> Self {
+        Self::new(Value::Number(value))
+    }
+
+    pub fn string(value: String) -> Self {
+        Self::new(Value::String(value))
+    }
+
+    pub fn list(value: Vec<RcValue>) -> Self {
+        Self::new(Value::List(value))
+    }
+
+    pub fn boolean(value: bool) -> Self {
+        Self::new(Value::Boolean(value))
+    }
+
+    pub fn builtin(value: Rc<dyn Fn(&mut Interpreter, Vec<RcValue>) -> Option<RcValue>>) -> Self {
+        Self::new(Value::Builtin(value))
+    }
+
+    pub fn lambda(value: Lambda) -> Self {
+        Self::new(Value::Lambda(value))
+    }
+
+    pub fn clone_deep(&self) -> Self {
+        Self::new(self.clone_inner())
+    }
+
+    pub fn clone_inner(&self) -> Value {
+        self.0.lock().unwrap().clone()
+    }
+}
+
+impl From<Value> for RcValue {
+    fn from(value: Value) -> Self {
+        Self::new(value)
+    }
+}
+
+#[derive(Clone)]
 pub enum Value {
     Nil,
     Number(i64),
     String(String),
-    List(Vec<Rc<Mutex<Value>>>),
+    List(Vec<RcValue>),
     Boolean(bool),
-    Builtin(Rc<dyn Fn(&mut Interpreter, Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>>>),
+    Builtin(Rc<dyn Fn(&mut Interpreter, Vec<RcValue>) -> Option<RcValue>>),
     Lambda(Lambda),
 }
 
@@ -77,14 +137,14 @@ impl Value {
         }
     }
 
-    pub fn list(&self) -> Option<&Vec<Rc<Mutex<Value>>>> {
+    pub fn list(&self) -> Option<&Vec<RcValue>> {
         match self {
             Value::List(v) => Some(v),
             _ => None,
         }
     }
 
-    pub fn list_mut(&mut self) -> Option<&mut Vec<Rc<Mutex<Value>>>> {
+    pub fn list_mut(&mut self) -> Option<&mut Vec<RcValue>> {
         match self {
             Value::List(v) => Some(v),
             _ => None,
@@ -93,7 +153,7 @@ impl Value {
 
     pub fn builtin(
         &self,
-    ) -> Option<&Rc<dyn Fn(&mut Interpreter, Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>>>> {
+    ) -> Option<&Rc<dyn Fn(&mut Interpreter, Vec<RcValue>) -> Option<RcValue>>> {
         match self {
             Value::Builtin(v) => Some(v),
             _ => None,

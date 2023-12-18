@@ -1,15 +1,12 @@
 use std::iter::once;
-use std::rc::Rc;
-use std::sync::Mutex;
 
 use parser::{
     Assignment, Block, Declaration, Expression, FunctionCall, If, Lambda, SourceFile, Statement,
 };
 
-use crate::builtin::copy_inner;
 use crate::scope::Scope;
 use crate::value::Value;
-use crate::{value, Interpreter};
+use crate::{value, Interpreter, RcValue};
 
 #[derive(Eq, PartialEq, Copy, Clone)]
 pub enum SeparateScope {
@@ -30,18 +27,16 @@ impl Interpreter {
         res
     }
 
-    pub fn eval_block(
-        &mut self,
-        block: Block,
-        separate_scope: SeparateScope,
-    ) -> Option<Rc<Mutex<Value>>> {
+    pub fn eval_block(&mut self, block: Block, separate_scope: SeparateScope) -> Option<RcValue> {
         if separate_scope == SeparateScope::Yes {
             self.with_scope(Scope::default(), |interpreter| {
                 for statement in block.statements {
                     interpreter.eval_statement(statement);
                 }
 
-                block.value.map(|expression| interpreter.eval_expression(expression))
+                block
+                    .value
+                    .map(|expression| interpreter.eval_expression(expression))
             })
         } else {
             for statement in block.statements {
@@ -54,7 +49,7 @@ impl Interpreter {
         }
     }
 
-    pub fn eval_expression(&mut self, expression: Expression) -> Rc<Mutex<Value>> {
+    pub fn eval_expression(&mut self, expression: Expression) -> RcValue {
         match expression {
             Expression::Identifier(v) => {
                 for scope in self.scopes_mut() {
@@ -64,40 +59,40 @@ impl Interpreter {
                 }
                 panic!("variable '{}' not found", v.0);
             }
-            Expression::NumberLiteral(v) => Rc::new(Mutex::new(Value::Number(
+            Expression::NumberLiteral(v) => RcValue::number(
                 TryInto::<i64>::try_into(v.0).expect("number literal out of range fo i64"),
-            ))),
-            Expression::StringLiteral(v) => Rc::new(Mutex::new(Value::String(v.0))),
-            Expression::ListLiteral(v) => Rc::new(Mutex::new(Value::List(
+            ),
+            Expression::StringLiteral(v) => RcValue::string(v.0),
+            Expression::ListLiteral(v) => RcValue::list(
                 v.0.into_iter()
                     .map(|expression| self.eval_expression(expression))
                     .collect(),
-            ))),
-            Expression::BooleanLiteral(v) => Rc::new(Mutex::new(Value::Boolean(v.0))),
+            ),
+            Expression::BooleanLiteral(v) => RcValue::boolean(v.0),
             Expression::FunctionCall(v) => self.eval_function_call(*v),
             Expression::Block(b) => self
                 .eval_block(*b, SeparateScope::Yes)
-                .unwrap_or(Rc::new(Mutex::new(Value::Nil))),
+                .unwrap_or(RcValue::nil()),
             Expression::Lambda(v) => self.eval_lambda(*v),
             Expression::Assignment(v) => self.eval_assignment(*v),
             Expression::If(v) => self.eval_if(*v),
         }
     }
 
-    pub fn eval_lambda(&mut self, lambda: Lambda) -> Rc<Mutex<Value>> {
+    pub fn eval_lambda(&mut self, lambda: Lambda) -> RcValue {
         let captured_environment = self.scopes.iter().fold(Scope::default(), |mut acc, scope| {
             acc.merge(scope);
             acc
         });
-        Rc::new(Mutex::new(Value::Lambda(value::Lambda {
+        RcValue::lambda(value::Lambda {
             by_reference: lambda.by_reference,
             captured_environment,
             args: lambda.parameters,
             body: lambda.body,
-        })))
+        })
     }
 
-    pub fn eval_function_call(&mut self, function_call: FunctionCall) -> Rc<Mutex<Value>> {
+    pub fn eval_function_call(&mut self, function_call: FunctionCall) -> RcValue {
         let function = self.eval_expression(function_call.function);
         let function = function.lock().unwrap().clone();
         if let Some(builtin) = function.builtin() {
@@ -107,14 +102,20 @@ impl Interpreter {
                 .map(|v| self.eval_expression(v))
                 .collect();
             self.with_scope(Scope::default(), |interpreter| {
-                builtin(interpreter, args).unwrap_or(Rc::new(Mutex::new(Value::Nil)))
+                builtin(interpreter, args).unwrap_or(RcValue::nil())
             })
         } else if let Some(lambda) = function.lambda().cloned() {
             let args: Vec<_> = function_call
                 .arguments
                 .into_iter()
                 .map(|v| self.eval_expression(v))
-                .map(|v| if lambda.by_reference { v } else { copy_inner(v) })
+                .map(|v| {
+                    if lambda.by_reference {
+                        v
+                    } else {
+                        v.clone_deep()
+                    }
+                })
                 .collect();
             // captured environment
             self.with_scope(lambda.captured_environment, |interpreter| {
@@ -143,14 +144,14 @@ impl Interpreter {
         }
     }
 
-    pub fn eval_if(&mut self, if_expression: If) -> Rc<Mutex<Value>> {
+    pub fn eval_if(&mut self, if_expression: If) -> RcValue {
         for cond_and_block in once(if_expression.the_if).chain(if_expression.else_if) {
             let (cond, then) = (cond_and_block.condition, cond_and_block.then);
             let cond_evaluated = self.eval_expression(cond);
             if Some(true) == cond_evaluated.lock().unwrap().boolean() {
                 return self
                     .eval_block(then, SeparateScope::Yes)
-                    .unwrap_or(Rc::new(Mutex::new(Value::Nil)));
+                    .unwrap_or(RcValue::nil());
             }
         }
 
@@ -159,11 +160,11 @@ impl Interpreter {
         if_expression
             .otherwise
             .map(|otherwise| self.eval_block(otherwise, SeparateScope::Yes))
-            .unwrap_or(Some(Rc::new(Mutex::new(Value::Nil))))
-            .unwrap_or(Rc::new(Mutex::new(Value::Nil)))
+            .unwrap_or(Some(RcValue::nil()))
+            .unwrap_or(RcValue::nil())
     }
 
-    pub fn eval_assignment(&mut self, assignment: Assignment) -> Rc<Mutex<Value>> {
+    pub fn eval_assignment(&mut self, assignment: Assignment) -> RcValue {
         let lvalue = self.eval_expression(assignment.lvalue);
         let rvalue = self
             .eval_expression(assignment.rvalue)
@@ -171,7 +172,7 @@ impl Interpreter {
             .unwrap()
             .clone();
         *lvalue.lock().unwrap() = rvalue.clone();
-        Rc::new(Mutex::new(rvalue))
+        RcValue::new(rvalue)
     }
 
     pub fn eval_statement(&mut self, statement: Statement) {

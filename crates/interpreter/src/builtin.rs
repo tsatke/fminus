@@ -1,12 +1,11 @@
 use std::fs::read_to_string;
 use std::rc::Rc;
-use std::sync::Mutex;
 
 use parser::Identifier;
 
 use crate::eval::SeparateScope;
 use crate::scope::Scope;
-use crate::{Value, Interpreter};
+use crate::{Interpreter, RcValue};
 
 impl Interpreter {
     pub fn register_builtins(&mut self) {
@@ -33,28 +32,26 @@ impl Interpreter {
     pub fn register_builtin(
         &mut self,
         name: impl Into<String>,
-        func: impl Fn(&mut Interpreter, Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> + 'static,
+        func: impl Fn(&mut Interpreter, Vec<RcValue>) -> Option<RcValue> + 'static,
     ) {
         self.current_scope().declare_variable(
             Identifier(name.into()),
-            Rc::new(Mutex::new(Value::Builtin(Rc::new(move |interpreter, args| {
-                func(interpreter, args)
-            })))),
+            RcValue::builtin(Rc::new(move |interpreter, args| func(interpreter, args))),
         );
     }
 
-    pub fn builtin_append(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    pub fn builtin_append(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         must_n_args(2, &args);
-        let list = copy_inner(args[0].clone());
+        let list = args[0].clone_deep();
         list.lock()
             .unwrap()
             .list_mut()
             .expect("left arg must be list")
-            .push(copy_inner(args[1].clone()));
+            .push(args[1].clone_deep());
         Some(list)
     }
 
-    pub fn builtin_builtin(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    pub fn builtin_builtin(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         must_n_args(1, &args);
         if args[0].lock().unwrap().builtin().is_none() {
             panic!("expected builtin");
@@ -62,7 +59,7 @@ impl Interpreter {
         None
     }
 
-    pub fn builtin_chars(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    pub fn builtin_chars(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         must_n_args(1, &args);
 
         let res = args[0]
@@ -71,12 +68,12 @@ impl Interpreter {
             .string()
             .expect("arg must be a string")
             .chars()
-            .map(|c| Rc::new(Mutex::new(Value::String(c.to_string()))))
+            .map(|c| RcValue::string(c.to_string()))
             .collect::<Vec<_>>();
-        Some(Rc::new(Mutex::new(Value::List(res))))
+        Some(RcValue::list(res))
     }
 
-    pub fn builtin_each(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    pub fn builtin_each(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         must_n_args(2, &args);
         let list = args[0].lock().unwrap();
         let list = list.list().expect("left arg must be list");
@@ -106,7 +103,7 @@ impl Interpreter {
         None
     }
 
-    pub fn builtin_echo(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    pub fn builtin_echo(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         let res = format!(
             "{}",
             args.iter()
@@ -114,10 +111,10 @@ impl Interpreter {
                 .collect::<Vec<_>>()
                 .join(" ")
         );
-        Some(Rc::new(Mutex::new(Value::String(res))))
+        Some(RcValue::string(res))
     }
 
-    pub fn builtin_concat(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    pub fn builtin_concat(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         must_n_args(2, &args);
 
         let left = args[0].lock().unwrap();
@@ -128,17 +125,17 @@ impl Interpreter {
 
         let res = format!("{}{}", left, right);
 
-        Some(Rc::new(Mutex::new(Value::String(res))))
+        Some(RcValue::string(res))
     }
 
-    pub fn builtin_equals(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    pub fn builtin_equals(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         must_n_args(2, &args);
         let left = args[0].lock().unwrap();
         let right = args[1].lock().unwrap();
-        Some(Rc::new(Mutex::new(Value::Boolean(left.eq(&right)))))
+        Some(RcValue::boolean(left.eq(&right)))
     }
 
-    pub fn builtin_error(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    pub fn builtin_error(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         panic!(
             "error: {}",
             self.builtin_echo(args)
@@ -150,7 +147,7 @@ impl Interpreter {
         );
     }
 
-    pub fn builtin_print(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    pub fn builtin_print(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         println!(
             "{}",
             self.builtin_echo(args)
@@ -163,29 +160,27 @@ impl Interpreter {
         None
     }
 
-    pub fn builtin_read_file(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    pub fn builtin_read_file(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         must_n_args(1, &args);
         let guard = args[0].lock().unwrap();
         let path = guard.string().expect("arg must be string");
         let content = read_to_string(path).unwrap();
-        Some(Rc::new(Mutex::new(Value::String(content))))
+        Some(RcValue::string(content))
     }
 
-    pub fn builtin_range(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    pub fn builtin_range(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         must_n_args(2, &args);
         let left = args[0].lock().unwrap();
         let right = args[1].lock().unwrap();
         match (left.number(), right.number()) {
-            (Some(left), Some(right)) => Some(Rc::new(Mutex::new(Value::List(
-                (left..right)
-                    .map(|i| Rc::new(Mutex::new(Value::Number(i))))
-                    .collect(),
-            )))),
+            (Some(left), Some(right)) => Some(RcValue::list(
+                (left..right).map(|i| RcValue::number(i)).collect(),
+            )),
             _ => panic!("expected numbers"),
         }
     }
 
-    fn builtin_search(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    fn builtin_search(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         must_n_args(2, &args);
 
         // search takes two strings, the first is the string to search in, the second is the regexp
@@ -207,13 +202,13 @@ impl Interpreter {
                     .filter_map(|capture| capture.map(|c| c.as_str().to_string()))
                     .collect::<Vec<_>>()
             })
-            .map(|capture| Rc::new(Mutex::new(Value::String(capture))))
+            .map(|capture| RcValue::string(capture))
             .collect();
 
-        Some(Rc::new(Mutex::new(Value::List(list))))
+        Some(RcValue::list(list))
     }
 
-    fn builtin_source(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    fn builtin_source(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         must_n_args(1, &args);
         let guard = args[0].lock().unwrap();
         let path = guard.string().expect("arg must be string");
@@ -228,39 +223,32 @@ impl Interpreter {
         res
     }
 
-    pub fn builtin_tail(&mut self, args: Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> {
+    pub fn builtin_tail(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         must_n_args(1, &args);
 
-        let arg = copy_inner(args[0].clone());
+        let arg = args[0].clone_deep();
         let list = arg.lock().unwrap();
         let mut list = list.list().expect("left arg must be list").clone();
         let first = list.remove(0);
-        Some(Rc::new(Mutex::new(Value::List(vec![
-            first,
-            Rc::new(Mutex::new(Value::List(list))),
-        ]))))
+        Some(RcValue::list(vec![first, RcValue::list(list)]))
     }
 }
 
-fn must_n_args(n: usize, args: &[Rc<Mutex<Value>>]) {
+fn must_n_args(n: usize, args: &[RcValue]) {
     if args.len() != n {
         panic!("expected {} arguments, got {}", n, args.len());
     }
 }
 
-pub fn copy_inner(v: Rc<Mutex<Value>>) -> Rc<Mutex<Value>> {
-    Rc::new(Mutex::new(v.lock().unwrap().clone()))
-}
-
 fn create_builtin_binary_arith_op(
     op: impl Fn(i64, i64) -> i64 + 'static,
-) -> impl Fn(&mut Interpreter, Vec<Rc<Mutex<Value>>>) -> Option<Rc<Mutex<Value>>> + 'static {
-    move |_: &mut Interpreter, args: Vec<Rc<Mutex<Value>>>| -> Option<Rc<Mutex<Value>>> {
+) -> impl Fn(&mut Interpreter, Vec<RcValue>) -> Option<RcValue> + 'static {
+    move |_: &mut Interpreter, args: Vec<RcValue>| -> Option<RcValue> {
         must_n_args(2, &args);
         let left = args[0].lock().unwrap();
         let right = args[1].lock().unwrap();
         match (left.number(), right.number()) {
-            (Some(left), Some(right)) => Some(Rc::new(Mutex::new(Value::Number(op(left, right))))),
+            (Some(left), Some(right)) => Some(RcValue::number(op(left, right))),
             _ => panic!("expected numbers"),
         }
     }
