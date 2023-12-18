@@ -96,7 +96,7 @@ impl Interpreter {
     }
 
     pub fn eval_function_call(&mut self, function_call: FunctionCall) -> RcValue {
-        let function_name = match &function_call.function {
+        let mut function_name = match &function_call.function {
             Expression::Identifier(v) => v.0.clone(),
             Expression::Lambda(_) => "<lambda>".to_string(),
             _ => "<unknown>".to_string(),
@@ -104,6 +104,7 @@ impl Interpreter {
         let function = self.eval_expression(function_call.function);
         let function = function.lock().unwrap().clone();
         if let Some(builtin) = function.builtin() {
+            function_name.push_str("<builtin>");
             let args = function_call
                 .arguments
                 .into_iter()

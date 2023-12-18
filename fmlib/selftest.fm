@@ -113,4 +113,5 @@ assert_eq := \l, r, msg -> (
 bar := \-> error('bar');
 foo := \-> bar();
 x := \-> foo();
-x();
+
+[1, 2] each x;

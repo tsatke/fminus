@@ -32,4 +32,19 @@ impl Interpreter {
     pub fn eval(&mut self, content: impl AsRef<str>) -> Option<Value> {
         self.eval_source_file(parser::parse(content))
     }
+
+    pub fn error(&mut self, msg: &str) -> ! {
+        panic!(
+            "error:\n\t{}\nbacktrace:\n{}",
+            msg,
+            self.scopes
+                .iter()
+                .rev()
+                .filter(|scope| scope.is_named())
+                .enumerate()
+                .map(|(i, scope)| format!("\t#{i}: {}(...)", scope.name().unwrap()))
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+    }
 }

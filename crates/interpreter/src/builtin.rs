@@ -41,7 +41,7 @@ impl Interpreter {
     }
 
     pub fn builtin_append(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
-        must_n_args(2, &args);
+        must_n_args(self, 2, &args);
         let list = args[0].clone_deep();
         list.lock()
             .unwrap()
@@ -52,15 +52,15 @@ impl Interpreter {
     }
 
     pub fn builtin_builtin(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
-        must_n_args(1, &args);
+        must_n_args(self, 1, &args);
         if args[0].lock().unwrap().builtin().is_none() {
-            panic!("expected builtin");
+            self.error("expected builtin");
         }
         None
     }
 
     pub fn builtin_chars(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
-        must_n_args(1, &args);
+        must_n_args(self, 1, &args);
 
         let res = args[0]
             .lock()
@@ -74,7 +74,7 @@ impl Interpreter {
     }
 
     pub fn builtin_each(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
-        must_n_args(2, &args);
+        must_n_args(self, 2, &args);
         let list = args[0].lock().unwrap();
         let list = list.list().expect("left arg must be list");
 
@@ -97,7 +97,7 @@ impl Interpreter {
                     });
                 });
             } else {
-                panic!("expected function or lambda");
+                self.error("expected function or lambda");
             }
         }
         None
@@ -115,7 +115,7 @@ impl Interpreter {
     }
 
     pub fn builtin_concat(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
-        must_n_args(2, &args);
+        must_n_args(self, 2, &args);
 
         let left = args[0].lock().unwrap();
         let right = args[1].lock().unwrap();
@@ -129,29 +129,17 @@ impl Interpreter {
     }
 
     pub fn builtin_equals(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
-        must_n_args(2, &args);
+        must_n_args(self, 2, &args);
         let left = args[0].lock().unwrap();
         let right = args[1].lock().unwrap();
         Some(RcValue::boolean(left.eq(&right)))
     }
 
     pub fn builtin_error(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
-        panic!(
-            "error:\n\t{}\nbacktrace:\n{}",
-            self.builtin_echo(args)
-                .unwrap()
-                .lock()
-                .unwrap()
-                .string()
-                .unwrap(),
-            self.scopes
-                .iter()
-                .rev()
-                .filter(|scope| scope.is_named())
-                .map(|scope| format!("\t{}(...)", scope.name().unwrap()))
-                .collect::<Vec<_>>()
-                .join("\n")
-        );
+        let binding = self.builtin_echo(args).unwrap();
+        let binding = binding.lock().unwrap();
+        let msg = binding.string().unwrap();
+        self.error(msg)
     }
 
     pub fn builtin_print(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
@@ -168,7 +156,7 @@ impl Interpreter {
     }
 
     pub fn builtin_read_file(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
-        must_n_args(1, &args);
+        must_n_args(self, 1, &args);
         let guard = args[0].lock().unwrap();
         let path = guard.string().expect("arg must be string");
         let content = read_to_string(path).unwrap();
@@ -176,19 +164,19 @@ impl Interpreter {
     }
 
     pub fn builtin_range(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
-        must_n_args(2, &args);
+        must_n_args(self, 2, &args);
         let left = args[0].lock().unwrap();
         let right = args[1].lock().unwrap();
         match (left.number(), right.number()) {
             (Some(left), Some(right)) => Some(RcValue::list(
                 (left..right).map(|i| RcValue::number(i)).collect(),
             )),
-            _ => panic!("expected numbers"),
+            _ => self.error("expected numbers"),
         }
     }
 
     fn builtin_search(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
-        must_n_args(2, &args);
+        must_n_args(self, 2, &args);
 
         // search takes two strings, the first is the string to search in, the second is the regexp
         // to search for
@@ -216,7 +204,7 @@ impl Interpreter {
     }
 
     fn builtin_source(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
-        must_n_args(1, &args);
+        must_n_args(self, 1, &args);
         let guard = args[0].lock().unwrap();
         let path = guard.string().expect("arg must be string");
         let content = read_to_string(path).unwrap();
@@ -231,7 +219,7 @@ impl Interpreter {
     }
 
     pub fn builtin_tail(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
-        must_n_args(1, &args);
+        must_n_args(self, 1, &args);
 
         let arg = args[0].clone_deep();
         let list = arg.lock().unwrap();
@@ -241,22 +229,22 @@ impl Interpreter {
     }
 }
 
-fn must_n_args(n: usize, args: &[RcValue]) {
+fn must_n_args(interpreter: &mut Interpreter, n: usize, args: &[RcValue]) {
     if args.len() != n {
-        panic!("expected {} arguments, got {}", n, args.len());
+        interpreter.error(format!("expected {} arguments, got {}", n, args.len()).as_str());
     }
 }
 
 fn create_builtin_binary_arith_op(
     op: impl Fn(i64, i64) -> i64 + 'static,
 ) -> impl Fn(&mut Interpreter, Vec<RcValue>) -> Option<RcValue> + 'static {
-    move |_: &mut Interpreter, args: Vec<RcValue>| -> Option<RcValue> {
-        must_n_args(2, &args);
+    move |interpreter: &mut Interpreter, args: Vec<RcValue>| -> Option<RcValue> {
+        must_n_args(interpreter, 2, &args);
         let left = args[0].lock().unwrap();
         let right = args[1].lock().unwrap();
         match (left.number(), right.number()) {
             (Some(left), Some(right)) => Some(RcValue::number(op(left, right))),
-            _ => panic!("expected numbers"),
+            _ => interpreter.error("expected numbers"),
         }
     }
 }
