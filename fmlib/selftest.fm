@@ -97,3 +97,15 @@ assert_eq := \l, r, msg -> (
     assert_eq([2, 3], x, 'my_pop_by_ref should modify the list');
 ))();
 
+(\->(
+    print 'test cells';
+    cell := (x := 0; [\-> x, \v -> x = v]);
+    get_cell := cell(0);
+    set_cell := cell(1);
+
+    assert_eq(0, get_cell(), 'get_cell should return the value of the cell');
+    set_cell(1);
+    assert_eq(1, get_cell(), 'set_cell should set the value of the cell');
+    set_cell('hello');
+    assert_eq('hello', get_cell(), 'set_cell should set the value of the cell');
+))();
