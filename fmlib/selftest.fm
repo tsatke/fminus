@@ -109,3 +109,8 @@ assert_eq := \l, r, msg -> (
     set_cell('hello');
     assert_eq('hello', get_cell(), 'set_cell should set the value of the cell');
 ))();
+
+bar := \-> error('bar');
+foo := \-> bar();
+x := \-> foo();
+x();

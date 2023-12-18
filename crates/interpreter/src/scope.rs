@@ -4,16 +4,41 @@ use parser::Identifier;
 
 use crate::RcValue;
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct Scope {
+    name: Option<String>,
     variables: HashMap<Identifier, RcValue>,
 }
 
 impl Scope {
-    pub fn merge(&mut self, other: &Self) {
-        for (name, value) in &other.variables {
-            self.variables.insert(name.clone(), value.clone());
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: Some(name.into()),
+            variables: HashMap::new(),
         }
+    }
+
+    pub fn new_unnamed() -> Self {
+        Self {
+            name: None,
+            variables: HashMap::new(),
+        }
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_ref().map(|s| s.as_str())
+    }
+
+    pub fn is_named(&self) -> bool {
+        self.name.is_some()
+    }
+
+    pub fn variables(&self) -> &HashMap<Identifier, RcValue> {
+        &self.variables
+    }
+
+    pub fn merge(&mut self, other: &Self) {
+        self.variables.extend(other.variables.clone());
     }
 
     pub fn declare_variable(&mut self, name: Identifier, value: RcValue) {

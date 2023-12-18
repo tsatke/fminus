@@ -16,7 +16,7 @@ pub struct Interpreter {
 impl Default for Interpreter {
     fn default() -> Self {
         let mut res = Self {
-            scopes: vec![Scope::default()],
+            scopes: vec![Scope::new("<global>")],
         };
         res.register_builtins();
         res

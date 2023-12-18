@@ -29,7 +29,7 @@ impl Interpreter {
 
     pub fn eval_block(&mut self, block: Block, separate_scope: SeparateScope) -> Option<RcValue> {
         if separate_scope == SeparateScope::Yes {
-            self.with_scope(Scope::default(), |interpreter| {
+            self.with_scope(Scope::new_unnamed(), |interpreter| {
                 for statement in block.statements {
                     interpreter.eval_statement(statement);
                 }
@@ -80,10 +80,13 @@ impl Interpreter {
     }
 
     pub fn eval_lambda(&mut self, lambda: Lambda) -> RcValue {
-        let captured_environment = self.scopes.iter().fold(Scope::default(), |mut acc, scope| {
-            acc.merge(scope);
-            acc
-        });
+        let captured_environment =
+            self.scopes
+                .iter()
+                .fold(Scope::new_unnamed(), |mut acc, scope| {
+                    acc.merge(scope);
+                    acc
+                });
         RcValue::lambda(value::Lambda {
             by_reference: lambda.by_reference,
             captured_environment,
@@ -93,6 +96,11 @@ impl Interpreter {
     }
 
     pub fn eval_function_call(&mut self, function_call: FunctionCall) -> RcValue {
+        let function_name = match &function_call.function {
+            Expression::Identifier(v) => v.0.clone(),
+            Expression::Lambda(_) => "<lambda>".to_string(),
+            _ => "<unknown>".to_string(),
+        };
         let function = self.eval_expression(function_call.function);
         let function = function.lock().unwrap().clone();
         if let Some(builtin) = function.builtin() {
@@ -101,7 +109,7 @@ impl Interpreter {
                 .into_iter()
                 .map(|v| self.eval_expression(v))
                 .collect();
-            self.with_scope(Scope::default(), |interpreter| {
+            self.with_scope(Scope::new(function_name), |interpreter| {
                 builtin(interpreter, args).unwrap_or(RcValue::nil())
             })
         } else if let Some(lambda) = function.lambda().cloned() {
@@ -120,7 +128,7 @@ impl Interpreter {
             // captured environment
             self.with_scope(lambda.captured_environment, |interpreter| {
                 // arguments
-                interpreter.with_scope(Scope::default(), |interpreter| {
+                interpreter.with_scope(Scope::new(function_name), |interpreter| {
                     for (name, value) in lambda.args.into_iter().zip(args) {
                         interpreter.current_scope().declare_variable(name, value);
                     }

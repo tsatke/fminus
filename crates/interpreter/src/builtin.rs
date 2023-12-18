@@ -82,14 +82,14 @@ impl Interpreter {
         for arg in list {
             let args = vec![arg.clone()];
             if let Some(builtin) = function.builtin() {
-                self.with_scope(Scope::default(), |interpreter| {
+                self.with_scope(Scope::new_unnamed(), |interpreter| {
                     builtin(interpreter, args);
                 });
             } else if let Some(lambda) = function.lambda().cloned() {
                 // captured environment
                 self.with_scope(lambda.captured_environment, |interpreter| {
                     // arguments
-                    interpreter.with_scope(Scope::default(), |interpreter| {
+                    interpreter.with_scope(Scope::new_unnamed(), |interpreter| {
                         for (name, value) in lambda.args.into_iter().zip(args) {
                             interpreter.current_scope().declare_variable(name, value);
                         }
@@ -137,13 +137,20 @@ impl Interpreter {
 
     pub fn builtin_error(&mut self, args: Vec<RcValue>) -> Option<RcValue> {
         panic!(
-            "error: {}",
+            "error:\n\t{}\nbacktrace:\n{}",
             self.builtin_echo(args)
                 .unwrap()
                 .lock()
                 .unwrap()
                 .string()
-                .unwrap()
+                .unwrap(),
+            self.scopes
+                .iter()
+                .rev()
+                .filter(|scope| scope.is_named())
+                .map(|scope| format!("\t{}(...)", scope.name().unwrap()))
+                .collect::<Vec<_>>()
+                .join("\n")
         );
     }
 
